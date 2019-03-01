@@ -31,7 +31,7 @@
 - (IBAction)changeBrightness:(NSSlider *)sender {
     if (lastBrightnessValue != self.sliderBrightness.intValue) {
         lastBrightnessValue = (int)self.sliderBrightness.intValue;
-        [AppDelegate changeMainScreenBrightness:lastBrightnessValue];
+        [AppDelegate changeScreenBrightness:lastBrightnessValue];
     }
 }
 

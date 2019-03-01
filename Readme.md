@@ -24,7 +24,7 @@ If your monitor supports reading the current brightness value from  DDC/CI, the 
 
 ## Multiple monitors support
 
-If you have multiple external monitors connected to your Mac, the brightness adjustment is done on the monitor with the currently active window, and the brightness system UI is displayed on the adjusted monitor.
+If you have `Sync all Monitors` option set, then the brightness will be adjusted on all external monitors.  Otherwise, the brightness adjustment is done on the monitor with the currently active window, and the brightness system UI is displayed on the adjusted monitor.
 
 ## Requirements
 

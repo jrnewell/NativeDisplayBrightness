@@ -151,7 +151,7 @@ static void showBrightnessLevelPaneOnDisplay (uint brightnessLevelInSubsteps, CG
                 }
                 
                 dispatch_async(dispatch_get_main_queue(), ^{
-                    [AppDelegate changeMainScreenBrightnessWithStep: brightnessDelta];
+                    [AppDelegate changeScreenBrightnessWithStep: brightnessDelta];
                 });
             }
             
@@ -519,9 +519,34 @@ void shutdownSignalHandler(int signal)
     return NO;
 }
 
-+(void)changeMainScreenBrightnessWithStep:(int) deltaInSubsteps {
-    CGDirectDisplayID currentDisplayId = [NSScreen.mainScreen.deviceDescription [@"NSScreenNumber"] unsignedIntValue];
-    if (! CGDisplayIsBuiltin(currentDisplayId)) {
++(void)changeScreenBrightness:(int) newBrightness {
+    if (APP_DELEGATE.multiMonitor) {
+        for (NSScreen* screen in NSScreen.screens) {
+            CGDirectDisplayID displayId = [screen.deviceDescription [@"NSScreenNumber"] unsignedIntValue];
+            [AppDelegate changeScreenBrightness:newBrightness forDisplayID:displayId];
+        }
+    }
+    else {
+        CGDirectDisplayID currentDisplayId = [NSScreen.mainScreen.deviceDescription [@"NSScreenNumber"] unsignedIntValue];
+        [AppDelegate changeScreenBrightness:newBrightness forDisplayID:currentDisplayId];
+    }
+}
+
++(void)changeScreenBrightnessWithStep:(int) deltaInSubsteps {
+    if (APP_DELEGATE.multiMonitor) {
+        for (NSScreen* screen in NSScreen.screens) {
+            CGDirectDisplayID displayId = [screen.deviceDescription [@"NSScreenNumber"] unsignedIntValue];
+            [AppDelegate changeMainScreenBrightnessWithStep:deltaInSubsteps forDisplayID:displayId];
+        }
+    }
+    else {
+        CGDirectDisplayID currentDisplayId = [NSScreen.mainScreen.deviceDescription [@"NSScreenNumber"] unsignedIntValue];
+        [AppDelegate changeMainScreenBrightnessWithStep:deltaInSubsteps forDisplayID:currentDisplayId];
+    }
+}
+
++(void)changeMainScreenBrightnessWithStep:(int) deltaInSubsteps forDisplayID:(CGDirectDisplayID) displayID {
+    if (! CGDisplayIsBuiltin(displayID)) {
         
         uint currentBrightness = 50;
         uint maxBrightness = 100;
@@ -530,9 +555,9 @@ void shutdownSignalHandler(int signal)
         // Fist, try user defaults to avoid waiting for a timeout if the display is known not to support DDCRead;
         // If user defaults are not set, read the brightness value from the display
         
-        BOOL isCurrentBrighnessReadFromDefaults = [AppDelegate loadSavedBrightness:&currentBrightness forDisplayID:currentDisplayId];
+        BOOL isCurrentBrighnessReadFromDefaults = [AppDelegate loadSavedBrightness:&currentBrightness forDisplayID:displayID];
         if (! isCurrentBrighnessReadFromDefaults) {
-            get_control(currentDisplayId, BRIGHTNESS, &currentBrightness, &maxBrightness);
+            get_control(displayID, BRIGHTNESS, &currentBrightness, &maxBrightness);
         }
         
         int currentBrightnessInSubsteps = round((double)currentBrightness / (double)maxBrightness * (double)brightnessSubstepsCount);
@@ -546,28 +571,27 @@ void shutdownSignalHandler(int signal)
         newBrightness = MIN(APP_DELEGATE.maxBrightness, newBrightness);
         
         if (newBrightness != currentBrightness) {
-            if (set_control(currentDisplayId, BRIGHTNESS, newBrightness)) {
+            if (set_control(displayID, BRIGHTNESS, newBrightness)) {
                 NSLog(@"New brightness: %d", newBrightness);
                 APP_DELEGATE.statusBarIcon.title = APP_DELEGATE.showBrightness ? [NSString stringWithFormat:@"%i%%",newBrightness] : @"";
                 // Display the brighness level OSD
-                showBrightnessLevelPaneOnDisplay(newBrightnessInSubsteps, currentDisplayId);
+                showBrightnessLevelPaneOnDisplay(newBrightnessInSubsteps, displayID);
                 APP_DELEGATE.brightnessView.sliderBrightness.integerValue = newBrightness;
-                [self saveBrightness:newBrightness forDisplayID:currentDisplayId];
+                [self saveBrightness:newBrightness forDisplayID:displayID];
             }
         }
         else {
             // Min or max brightness level: present the OSD to provide a feedback to the user, but don't send a command
-            showBrightnessLevelPaneOnDisplay(newBrightness, currentDisplayId);
+            showBrightnessLevelPaneOnDisplay(newBrightness, displayID);
         }
     }
 }
 
-+(void)changeMainScreenBrightness:(int) newBrightness {
-    CGDirectDisplayID currentDisplayId = [NSScreen.mainScreen.deviceDescription [@"NSScreenNumber"] unsignedIntValue];
-    if (! CGDisplayIsBuiltin(currentDisplayId)) {
-        if (set_control(currentDisplayId, BRIGHTNESS, newBrightness)) {
++(void)changeScreenBrightness:(int) newBrightness forDisplayID:(CGDirectDisplayID) displayID {
+    if (! CGDisplayIsBuiltin(displayID)) {
+        if (set_control(displayID, BRIGHTNESS, newBrightness)) {
             APP_DELEGATE.statusBarIcon.title = APP_DELEGATE.showBrightness ? [NSString stringWithFormat:@"%i%%",newBrightness] : @"";
-            [AppDelegate saveBrightness:newBrightness forDisplayID:currentDisplayId];
+            [AppDelegate saveBrightness:newBrightness forDisplayID:displayID];
         }
     }
 }

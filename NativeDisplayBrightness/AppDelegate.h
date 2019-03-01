@@ -46,8 +46,11 @@
 
 +(BOOL)loadSavedBrightness:(uint*) savedBrightness forDisplayID:(CGDirectDisplayID) displayID;
 
-+(void)changeMainScreenBrightness:(int) newBrightness;
-+(void)changeMainScreenBrightnessWithStep:(int) deltaInSubsteps;
++(void)changeScreenBrightness:(int) newBrightness;
++(void)changeScreenBrightnessWithStep:(int) deltaInSubsteps;
+
++(void)changeScreenBrightness:(int) newBrightness forDisplayID:(CGDirectDisplayID) displayID;
++(void)changeMainScreenBrightnessWithStep:(int) deltaInSubsteps forDisplayID:(CGDirectDisplayID) displayID;
 
 +(void)changeScreenColorTemperature:(float) colorTemperature;
 +(void)changeScreenColorTemperatureStep:(float) colorTemperatureStep;
