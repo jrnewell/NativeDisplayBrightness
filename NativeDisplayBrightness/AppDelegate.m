@@ -128,9 +128,43 @@ static void showBrightnessLevelPaneOnDisplay (uint brightnessLevelInSubsteps, CG
 - (void)_configureLoginItem
 {
     NSURL *bundleURL = [NSURL fileURLWithPath:[[NSBundle mainBundle] bundlePath]];
-    LSSharedFileListRef loginItemsListRef = LSSharedFileListCreate(NULL, kLSSharedFileListSessionLoginItems, NULL);
-    NSDictionary *properties = @{@"com.apple.loginitem.HideOnLaunch": @YES};
-    LSSharedFileListInsertItemURL(loginItemsListRef, kLSSharedFileListItemLast, NULL, NULL, (__bridge CFURLRef)bundleURL, (__bridge CFDictionaryRef)properties,NULL);
+   
+    BOOL loginItemExists = [AppDelegate willStartAtLogin: bundleURL];
+    if (!loginItemExists) {
+        LSSharedFileListRef loginItems = LSSharedFileListCreate(NULL, kLSSharedFileListSessionLoginItems, NULL);
+        if (loginItems) {
+            NSDictionary *properties = @{@"com.apple.loginitem.HideOnLaunch": @YES};
+            LSSharedFileListInsertItemURL(loginItems, kLSSharedFileListItemBeforeFirst,
+                                      NULL, NULL, (__bridge CFURLRef)bundleURL, (__bridge CFDictionaryRef)properties, NULL);
+            CFRelease(loginItems);
+        }
+    }
+}
+
++ (BOOL)willStartAtLogin:(NSURL *)bundleURL
+{
+    Boolean foundIt=false;
+    LSSharedFileListRef loginItems = LSSharedFileListCreate(NULL, kLSSharedFileListSessionLoginItems, NULL);
+    if (loginItems) {
+        UInt32 seed = 0U;
+        NSArray *currentLoginItems = (__bridge NSArray *)LSSharedFileListCopySnapshot(loginItems, &seed);
+        for (id itemObject in currentLoginItems) {
+            LSSharedFileListItemRef item = (__bridge LSSharedFileListItemRef)itemObject;
+            
+            UInt32 resolutionFlags = kLSSharedFileListNoUserInteraction | kLSSharedFileListDoNotMountVolumes;
+            CFURLRef URL = NULL;
+            OSStatus err = LSSharedFileListItemResolve(item, resolutionFlags, &URL, /*outRef*/ NULL);
+            if (err == noErr) {
+                foundIt = CFEqual(URL, (__bridge CFTypeRef)bundleURL);
+                CFRelease(URL);
+                
+                if (foundIt)
+                    break;
+            }
+        }
+        CFRelease(loginItems);
+    }
+    return (BOOL)foundIt;
 }
 
 - (void)_registerGlobalKeyboardEvents
